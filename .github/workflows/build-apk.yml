@@ -28,6 +28,40 @@ jobs:
           curl -fsSL -o gradle/wrapper/gradle-wrapper.jar \
             "https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar"
 
+      - name: Download SkyBook logo and generate icon assets
+        run: |
+          # Download the live site logo
+          curl -fsSL -o /tmp/skybook_logo.png \
+            "https://zegfirgyhdjyehvhlrnh.supabase.co/storage/v1/object/public/SkyBook/SkyBook.png"
+
+          # Bundle as splash screen drawable
+          mkdir -p app/src/main/res/drawable
+          cp /tmp/skybook_logo.png app/src/main/res/drawable/skybook_logo.png
+
+          # Replace vector foreground with real logo for adaptive icon
+          cat > app/src/main/res/drawable/ic_launcher_foreground.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+              android:src="@drawable/skybook_logo"
+              android:gravity="center" />
+          EOF
+
+          # Generate legacy PNG icons via ImageMagick (for completeness)
+          for cfg in "48:mdpi" "72:hdpi" "96:xhdpi" "144:xxhdpi" "192:xxxhdpi"; do
+            size="${cfg%%:*}"; density="${cfg##*:}"
+            mkdir -p "app/src/main/res/mipmap-$density"
+            convert /tmp/skybook_logo.png -resize "${size}x${size}" \
+              "app/src/main/res/mipmap-$density/ic_launcher.png"
+            cp "app/src/main/res/mipmap-$density/ic_launcher.png" \
+               "app/src/main/res/mipmap-$density/ic_launcher_round.png"
+          done
+
+      - name: Update splash screen to use real logo
+        run: |
+          # Replace the S-stroke foreground reference with the real logo in the layout
+          sed -i 's|android:src="@drawable/ic_launcher_foreground"|android:src="@drawable/skybook_logo"|g' \
+            app/src/main/res/layout/activity_main.xml
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
@@ -37,16 +71,23 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SkyBook-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: SkyBook
+          path: app/build/outputs/apk/debug/SkyBook.apk
           retention-days: 90
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: build-${{ github.run_number }}
-          name: "SkyBook APK — Build ${{ github.run_number }}"
-          body: "Auto-built debug APK. Install on Android 8.0+."
-          artifacts: app/build/outputs/apk/debug/app-debug.apk
+          name: "SkyBook — Build ${{ github.run_number }}"
+          body: |
+            **SkyBook for Android**
+            Your booking workspace — always connected to your live account.
+
+            **Install:** Download SkyBook.apk → open the file → tap Install.
+            You may need to allow installs from unknown sources in Android Settings.
+
+            Requires Android 8.0 or later.
+          artifacts: app/build/outputs/apk/debug/SkyBook.apk
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
