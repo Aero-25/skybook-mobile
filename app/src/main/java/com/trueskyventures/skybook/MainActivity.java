@@ -21,6 +21,10 @@ public class MainActivity extends Activity {
 
     private static final String TARGET_URL = "https://skybook-8rd.pages.dev/booking-admin.html";
 
+    // Live instance + a URL parked for a cold start from a tapped notification.
+    private static MainActivity instance;
+    private static String pendingUrl;
+
     private WebView webView;
     private View splashView;
     private View offlineView;
@@ -29,6 +33,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        instance = this;
 
         webView     = findViewById(R.id.webView);
         splashView  = findViewById(R.id.splashView);
@@ -42,8 +47,27 @@ public class MainActivity extends Activity {
             webView.restoreState(savedInstanceState);
             splashView.setVisibility(View.GONE);
         } else {
-            loadApp();
+            String startUrl = pendingUrl;
+            pendingUrl = null;
+            loadUrlOrDefault(startUrl);
         }
+    }
+
+    /** Called from the OneSignal notification-click listener to open a booking in-app. */
+    public static void openBookingUrl(String url) {
+        if (url == null || url.isEmpty()) return;
+        MainActivity a = instance;
+        if (a != null && a.webView != null) {
+            a.runOnUiThread(() -> a.webView.loadUrl(url));
+        } else {
+            pendingUrl = url; // app not ready yet — load it once onCreate runs
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (instance == this) instance = null;
+        super.onDestroy();
     }
 
     private void setupWebView() {
@@ -88,11 +112,15 @@ public class MainActivity extends Activity {
     }
 
     private void loadApp() {
+        loadUrlOrDefault(null);
+    }
+
+    private void loadUrlOrDefault(String url) {
         if (isOnline()) {
             offlineView.setVisibility(View.GONE);
             splashView.setAlpha(1f);
             splashView.setVisibility(View.VISIBLE);
-            webView.loadUrl(TARGET_URL);
+            webView.loadUrl(url != null && !url.isEmpty() ? url : TARGET_URL);
         } else {
             splashView.setVisibility(View.GONE);
             offlineView.setVisibility(View.VISIBLE);

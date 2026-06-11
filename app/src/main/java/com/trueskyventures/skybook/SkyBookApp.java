@@ -25,5 +25,15 @@ public class SkyBookApp extends Application {
 
         // Ask for the Android 13+ notification permission (no-op on older versions).
         OneSignal.getNotifications().requestPermission(true, Continue.none());
+
+        // Tapping a booking notification opens that booking inside the app's WebView.
+        OneSignal.getNotifications().addClickListener(event -> {
+            String url = null;
+            try {
+                org.json.JSONObject data = event.getNotification().getAdditionalData();
+                if (data != null) url = data.optString("open_url", null);
+            } catch (Throwable ignored) { }
+            MainActivity.openBookingUrl(url);
+        });
     }
 }
