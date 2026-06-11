@@ -37,4 +37,7 @@ android {
 }
 
 dependencies {
+    // OneSignal push notifications (5.x). No google-services.json / Google Services
+    // plugin needed — FCM is configured in the OneSignal dashboard.
+    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
 }
