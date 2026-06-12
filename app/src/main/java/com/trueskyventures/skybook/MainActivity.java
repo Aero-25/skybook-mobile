@@ -84,6 +84,10 @@ public class MainActivity extends Activity {
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
+        // Tag the user-agent so the web admin can tell it's already running inside
+        // the app and suppress the "Install the app" banner.
+        s.setUserAgentString(s.getUserAgentString() + " SkyBookApp");
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
