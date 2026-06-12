@@ -2,8 +2,8 @@ package com.trueskyventures.skybook;
 
 import android.app.Application;
 
+import com.onesignal.Continue;
 import com.onesignal.OneSignal;
-import com.onesignal.common.threading.Continue;
 import com.onesignal.debug.LogLevel;
 
 /**
